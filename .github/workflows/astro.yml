@@ -1,51 +1,72 @@
-name: Deploy Astro site to Pages
+name: Deploy Astro to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
     paths:
       - 'src/**'
+      - 'source/**'
       - 'public/**'
       - 'astro.config.*'
       - 'package.json'
       - 'pnpm-lock.yaml'
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
-
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 9
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: "pnpm"
-      - run: pnpm install --frozen-lockfile
-      - uses: actions/configure-pages@v5
-        id: pages
-      - run: pnpm astro build --site "${{ steps.pages.outputs.origin }}" --base "${{ steps.pages.outputs.base_path }}"
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
-      - uses: actions/deploy-pages@v4
-        id: deployment
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'pnpm'
+
+      - name: Install dependencies (pnpm lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate cache files
+        run: |
+          pnpm run generate:lqips
+          pnpm run generate:summaries
+          pnpm run generate:similarities
+        env:
+          GEMINI_API_BASE_URL: ${{ secrets.GEMINI_API_BASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL }}
+
+      - name: Commit cache updates
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add src/cache/
+          if git diff --staged --quiet; then
+            echo "No cache changes to commit"
+          else
+            git commit -m "chore: update cache files [skip ci]"
+            git push
+          fi
+
+      - name: Build site
+        run: pnpm run build:ci
+
+      - name: Deploy to external GitHub Pages repo
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          personal_token: ${{ secrets.DEPLOY_TOKEN }}
+          external_repository: XueHua-s/XueHua-s.github.io
+          publish_branch: main
+          publish_dir: ./dist
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: ${{ github.event.head_commit.message }}
