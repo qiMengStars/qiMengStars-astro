@@ -17,7 +17,7 @@ site:
   name: qiMengStars # 作者名称 - 请修改为你的名字
   description: 星光所在，便是星空 # 网站描述
   avatar: https://avatars.githubusercontent.com/u/191591196?v=4 # 网站头像
-  showLogo: true # 是否显示 Logo
+  showLogo: false # 是否显示 Logo
   author: qiMengStars # 作者名称 - 请修改为你的名字
   url: https://starfall-blush.vercel.app # 站点 URL 用于 RSS 和 SEO
   defaultOgImage: https://avatars.githubusercontent.com/u/191591196?v=4 # 默认 Open Graph 图片
@@ -625,7 +625,7 @@ dev:
     - id: vscode
       name: VS Code
       icon: devicon-plain:vscode
-      urlTemplate: 'vscode://file/{path}'
+      urlTemplate: 'vscode://file/{"C:\Users\xixil\AppData\Local\Programs\Microsoft VS Code\Code.exe"}'
     - id: cursor
       name: Cursor
       icon: simple-icons:cursor
